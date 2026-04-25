@@ -29,6 +29,31 @@ def _load_prompt(name: str) -> str:
         return f.read().strip()
 
 
+def _build_previous_answers_summary(session: dict) -> str:
+    """
+    Build a brief summary of previous answers in this session so the AI
+    can compare and track improvement within the session.
+    """
+    answers = session.get("answers", [])
+    if not answers:
+        return "No previous answers in this session."
+
+    summaries = []
+    for i, a in enumerate(answers, 1):
+        scores = a.get("scores", {})
+        delivery = a.get("delivery_metrics", {})
+        summary = (
+            f"Q{i}: content_score={scores.get('overall_score', '?')}/100, "
+            f"delivery_score={delivery.get('delivery_score', '?')}/100, "
+            f"fillers={delivery.get('filler_count', '?')}, "
+            f"confidence_ratio={delivery.get('confidence_ratio', '?')}, "
+            f"hedging_count={delivery.get('hedging_count', '?')}"
+        )
+        summaries.append(summary)
+
+    return " | ".join(summaries)
+
+
 async def analyse_resume(resume_text: str, job_role: str, session_id: str) -> dict:
     """
     Use gpt-4o to analyse a resume against a target job role.
@@ -116,31 +141,76 @@ async def score_answer_with_ai(
     session_id: str,
     question: str,
     answer: str,
+    delivery_data: dict | None = None,
 ) -> dict:
     """
-    Use gpt-4o-mini to score a candidate's answer for content quality.
+    Use gpt-4o to score a candidate's answer holistically — content AND delivery together.
+
+    The AI receives:
+    - The question and answer transcript
+    - Algorithmic delivery analysis (fillers, hedging, confidence, structure)
+    - Summary of previous answers for trend comparison
+
+    This produces moment-specific, quote-based, honest feedback.
     """
     client = _get_client()
     system_prompt = _load_prompt("score_answer")
 
     session = load_session(session_id)
-    user_message = json.dumps({
-        "job_role": session.get("job_role") if session else "Unknown",
+    job_role = session.get("job_role", "Unknown") if session else "Unknown"
+
+    # Build previous answers summary for trend tracking
+    previous_summary = _build_previous_answers_summary(session) if session else "No previous answers."
+
+    # Build the comprehensive user message
+    user_payload = {
+        "job_role": job_role,
         "question": question,
         "answer": answer,
-    })
+        "delivery_data": _sanitize_delivery_for_ai(delivery_data) if delivery_data else None,
+        "previous_answers_summary": previous_summary,
+    }
 
     response = await client.chat.completions.create(
-        model=settings.GPT4O_MINI_MODEL,
+        model=settings.GPT4O_MODEL,  # Use gpt-4o for better analysis quality
         messages=[
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_message},
+            {"role": "user", "content": json.dumps(user_payload)},
         ],
         response_format={"type": "json_object"},
         temperature=0.2,
     )
 
     return json.loads(response.choices[0].message.content)
+
+
+def _sanitize_delivery_for_ai(delivery_data: dict) -> dict:
+    """
+    Prepare delivery data for the AI prompt. Include the most useful fields
+    without overwhelming the context window.
+    """
+    if not delivery_data:
+        return {}
+
+    return {
+        "filler_count": delivery_data.get("filler_count", 0),
+        "filler_words_found": delivery_data.get("filler_words_found", {}),
+        "filler_annotations": delivery_data.get("filler_annotations", [])[:5],  # cap at 5
+        "wpm": delivery_data.get("wpm"),
+        "word_count": delivery_data.get("word_count", 0),
+        "pace_assessment": delivery_data.get("pace_assessment", ""),
+        "sentence_count": delivery_data.get("sentence_count", 0),
+        "hedging_phrases": delivery_data.get("hedging_phrases", []),
+        "hedging_count": delivery_data.get("hedging_count", 0),
+        "confidence_markers": delivery_data.get("confidence_markers", {}),
+        "confidence_ratio": delivery_data.get("confidence_ratio", 0),
+        "repetition_flags": delivery_data.get("repetition_flags", []),
+        "vocabulary_richness": delivery_data.get("vocabulary_richness", 0),
+        "structure_score": delivery_data.get("structure_score", 0),
+        "structure_notes": delivery_data.get("structure_notes", ""),
+        "star_signals": delivery_data.get("star_signals", {}),
+        "delivery_score": delivery_data.get("delivery_score", 0),
+    }
 
 
 async def generate_session_report(session_id: str) -> dict:
