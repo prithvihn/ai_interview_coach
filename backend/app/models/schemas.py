@@ -38,6 +38,25 @@ class NextQuestionResponse(BaseModel):
     hint: Optional[str] = None
 
 
+class BatchQuestionRequest(BaseModel):
+    session_id: str
+    category: Optional[str] = None    # hr, communication, technical, behavioural, situational, motivational — null = mixed
+    count: int = 5                     # how many questions to generate (default 5)
+
+
+class BatchQuestionItem(BaseModel):
+    question: str
+    question_type: str = ""
+    hint: Optional[str] = None
+    difficulty: str = "medium"         # easy, medium, hard
+
+
+class BatchQuestionResponse(BaseModel):
+    session_id: str
+    category: Optional[str] = None
+    questions: List[BatchQuestionItem] = []
+
+
 # ─────────────────────────────────────────────
 # Feedback / Scoring — Content (AI-scored)
 # ─────────────────────────────────────────────

@@ -137,6 +137,55 @@ async def generate_next_question(
     return result
 
 
+async def generate_batch_questions(
+    session_id: str,
+    category: str | None = None,
+    count: int = 5,
+) -> dict:
+    """
+    Generate a batch of interview questions at once for a specific category.
+    Returns a dict with 'questions' list matching BatchQuestionResponse schema.
+    """
+    session = load_session(session_id)
+    if not session:
+        return None
+
+    client = _get_client()
+    system_prompt = _load_prompt("generate_batch_questions")
+
+    context = {
+        "job_role": session.get("job_role"),
+        "resume_analysis": session.get("resume_analysis"),
+        "previous_questions": session.get("questions", []),
+        "category": category,
+        "count": count,
+    }
+
+    response = await client.chat.completions.create(
+        model=settings.GPT4O_MINI_MODEL,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": json.dumps(context)},
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.7,
+    )
+
+    result = json.loads(response.choices[0].message.content)
+
+    # Append all generated questions to the session
+    questions_list = result.get("questions", [])
+    for q in questions_list:
+        session.setdefault("questions", []).append(q.get("question"))
+    save_session(session_id, session)
+
+    return {
+        "session_id": session_id,
+        "category": category,
+        "questions": questions_list,
+    }
+
+
 async def score_answer_with_ai(
     session_id: str,
     question: str,
