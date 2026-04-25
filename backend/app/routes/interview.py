@@ -24,6 +24,7 @@ async def next_question(payload: NextQuestionRequest):
         session_id=payload.session_id,
         question_number=payload.question_number,
         delivery_metrics=delivery_metrics,
+        preferred_category=payload.preferred_category,
     )
 
     if not question:

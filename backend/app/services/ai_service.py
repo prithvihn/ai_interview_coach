@@ -69,6 +69,7 @@ async def generate_next_question(
     session_id: str,
     question_number: int,
     delivery_metrics: dict | None = None,
+    preferred_category: str | None = None,
 ) -> dict:
     """
     Use gpt-4o-mini to generate the next interview question
@@ -87,6 +88,7 @@ async def generate_next_question(
         "previous_questions": session.get("questions", []),
         "question_number": question_number,
         "last_delivery_metrics": delivery_metrics,
+        "preferred_category": preferred_category,
     }
 
     response = await client.chat.completions.create(

@@ -27,13 +27,14 @@ class NextQuestionRequest(BaseModel):
     question_number: int = 1
     last_answer_transcript: Optional[str] = None
     duration_seconds: Optional[float] = None
+    preferred_category: Optional[str] = None  # hr, communication, technical, behavioural, situational, motivational
 
 
 class NextQuestionResponse(BaseModel):
     session_id: str
     question_number: int
     question: str
-    question_type: str = ""   # e.g. "behavioural", "technical", "situational"
+    question_type: str = ""   # hr, communication, behavioural, technical, situational, motivational
     hint: Optional[str] = None
 
 
