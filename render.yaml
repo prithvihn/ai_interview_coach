@@ -1,0 +1,13 @@
+# render.yaml — Auto-configure Render deployment
+services:
+  - type: web
+    name: ai-interview-coach-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: GITHUB_TOKEN
+        sync: false
