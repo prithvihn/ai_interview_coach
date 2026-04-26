@@ -1,0 +1,32 @@
+.env
+.env.local
+.env.*.local
+*.env
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+env/
+venv/
+ENV/
+.venv/
+
+# Backend data (runtime files, never commit)
+backend/data/sessions/
+backend/data/uploads/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build / dist
+dist/
+build/
+*.egg-info/
