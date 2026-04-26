@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import resume, interview, feedback, report, sessions
+from app.routes import resume, interview, feedback, report, sessions, voice
 from app.config import settings
 
 app = FastAPI(
@@ -24,6 +24,7 @@ app.include_router(interview.router, prefix="/api", tags=["Interview"])
 app.include_router(feedback.router, prefix="/api", tags=["Feedback"])
 app.include_router(report.router, prefix="/api", tags=["Report"])
 app.include_router(sessions.router, prefix="/api", tags=["Sessions"])
+app.include_router(voice.router, prefix="/api", tags=["Voice"])
 
 
 @app.get("/")

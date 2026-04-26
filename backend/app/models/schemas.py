@@ -150,6 +150,15 @@ class ImprovementTrends(BaseModel):
 
 
 # ─────────────────────────────────────────────
+# Interviewer Verbal Reaction
+# ─────────────────────────────────────────────
+
+class InterviewerReaction(BaseModel):
+    reaction: str = ""          # Natural verbal response text
+    tone: str = "neutral"       # warm | neutral | probing | encouraging | direct
+
+
+# ─────────────────────────────────────────────
 # Feedback Request / Response
 # ─────────────────────────────────────────────
 
@@ -167,6 +176,18 @@ class FeedbackResponse(BaseModel):
     content_score: ContentScore
     delivery_score: DeliveryScore
     improvement_trends: Optional[ImprovementTrends] = None
+    interviewer_reaction: Optional[InterviewerReaction] = None
+
+
+# ─────────────────────────────────────────────
+# Text-to-Speech
+# ─────────────────────────────────────────────
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: str = "male_professional"      # voice preset key
+    rate: str = "+0%"                      # speech rate adjustment
+    pitch: str = "+0Hz"                    # pitch adjustment
 
 
 # ─────────────────────────────────────────────

@@ -284,3 +284,54 @@ async def generate_session_report(session_id: str) -> dict:
     )
 
     return json.loads(response.choices[0].message.content)
+
+
+async def generate_interviewer_reaction(
+    question: str,
+    transcript: str,
+    content_score: dict,
+    delivery_data: dict,
+    job_role: str = "",
+) -> dict:
+    """
+    Generate a short, natural-sounding verbal reaction from the HR interviewer.
+    This is what the interviewer says out loud after hearing the candidate's answer.
+
+    Returns:
+        {
+            "reaction": "Natural verbal response text",
+            "tone": "warm | neutral | probing | encouraging | direct"
+        }
+    """
+    client = _get_client()
+    system_prompt = _load_prompt("interviewer_reaction")
+
+    context = {
+        "question": question,
+        "transcript": transcript,
+        "content_score": content_score.get("overall_score", 0) if isinstance(content_score, dict) else 0,
+        "delivery_data": {
+            "filler_count": delivery_data.get("filler_count", 0),
+            "hedging_count": delivery_data.get("hedging_count", 0),
+            "confidence_ratio": delivery_data.get("confidence_ratio", 0),
+            "pace_assessment": delivery_data.get("pace_assessment", ""),
+            "word_count": delivery_data.get("word_count", 0),
+        },
+        "job_role": job_role,
+    }
+
+    response = await client.chat.completions.create(
+        model=settings.GPT4O_MINI_MODEL,   # Fast model — reaction should be quick
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": json.dumps(context)},
+        ],
+        response_format={"type": "json_object"},
+        temperature=0.8,    # Higher temp for more natural variation
+    )
+
+    result = json.loads(response.choices[0].message.content)
+    return {
+        "reaction": result.get("reaction", ""),
+        "tone": result.get("tone", "neutral"),
+    }
